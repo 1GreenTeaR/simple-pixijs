@@ -9,6 +9,7 @@ import {
   GameEventType,
   SetupParams,
 } from "./types";
+import { ForegroundNew } from "./foreground-new";
 
 export function bootstrap(baseDI: Container): void {
   const app = new PIXI.Application({
@@ -50,14 +51,14 @@ function setup(params: SetupParams): void {
     .to(SlotMachine)
     .inSingletonScope();
   container
-    .bind<Foreground>(GAME_TYPES.Foreground)
-    .to(Foreground)
+    .bind<ForegroundNew>(GAME_TYPES.Foreground)
+    .to(ForegroundNew)
     .inSingletonScope();
 
   // Add the containers to the stage
   const slotMachine = container.get<SlotMachine>(GAME_TYPES.SlotMachine);
   app.stage.addChild(slotMachine);
-  const foreground = container.get<Foreground>(GAME_TYPES.Foreground);
+  const foreground = container.get<ForegroundNew>(GAME_TYPES.Foreground);
   app.stage.addChild(foreground);
 
   setupEvents(container);

@@ -6,7 +6,8 @@
   "scripts": {
     "clean": "rimraf ./dist",
     "build": "npm run clean && webpack",
-    "start": "npm run build && npx serve ."
+    "start": "npm run build && npx serve .",
+    "dev": "webpack --watch & npx serve ."
   },
   "dependencies": {
     "pixi.js": "5.3.12"
