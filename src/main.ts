@@ -17,6 +17,7 @@ export function bootstrap(baseDI: Container): void {
     height: window.innerHeight,
     backgroundColor: 0x1099bb,
     resizeTo: window,
+    antialias: true,
   });
   document.body.appendChild(app.view);
   //@ts-ignore
