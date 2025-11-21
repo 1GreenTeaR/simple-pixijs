@@ -1,12 +1,17 @@
 import { inject, injectable } from "inversify";
 import * as PIXI from "pixi.js";
 import { SlotMachine } from "./slot-machine";
-import { GAME_TYPES, GameEventBus, GameEventType } from "./types";
+import { GAME_TYPES, GameEvent, GameEventBus, GameEventType } from "./types";
 
 @injectable()
 export class ForegroundNew extends PIXI.Container {
   public playButton: PIXI.Container;
   public headerText: PIXI.Text;
+  public spinCounterText: PIXI.Text;
+  public winCounterText: PIXI.Text;
+
+  private spinCount: number = 0;
+  private winCount: number = 0;
 
   constructor(
     @inject(GAME_TYPES.PixiApp) private _app: PIXI.Application,
@@ -101,17 +106,69 @@ export class ForegroundNew extends PIXI.Container {
     );
     this.headerText.y = Math.round((margin - this.headerText.height) / 2);
 
+    function renderCounterColor(fillColor: number) {
+      return new PIXI.TextStyle({
+        fontFamily: "Inter, Helvetica, Arial, sans-serif",
+        fontSize: 24,
+        fill: fillColor,
+        fontWeight: "bold",
+        align: "center",
+      });
+    }
+    const counterStyle = renderCounterColor(0xffffff);
+    const winCounterStyle = renderCounterColor(0xffff00);
+    this.spinCounterText = new PIXI.Text(
+      `Spins: ${this.spinCount}`,
+      counterStyle
+    );
+    this.spinCounterText.x = Math.round(
+      (this._app.screen.width - this.spinCounterText.width) / 2
+    );
+    this.spinCounterText.y = this.headerText.y + this.headerText.height + 10;
+
+    this.winCounterText = new PIXI.Text(
+      `Wins: ${this.winCount}`,
+      winCounterStyle
+    );
+    this.winCounterText.x = Math.round(
+      (this._app.screen.width - this.winCounterText.width) / 2
+    );
+    this.winCounterText.y =
+      this.spinCounterText.y + this.spinCounterText.height + 6;
+
     this.addChild(this.headerText);
+    this.addChild(this.spinCounterText);
+    this.addChild(this.winCounterText);
     this.addChild(this.playButton);
 
-    this._eventBus.on((event) => {
-      if (event.type === GameEventType.SPIN_START) {
+    const eventHandler: Partial<
+      Record<GameEventType, (event: GameEvent) => void>
+    > = {
+      [GameEventType.SPIN_START]: () => {
         this.playButton.interactive = false;
         this.playButton.alpha = 0.4;
-      } else if (event.type === GameEventType.SPIN_END) {
+        this.spinCount += 1;
+        this.spinCounterText.text = `Spins: ${this.spinCount}`;
+
+        this.spinCounterText.x = Math.round(
+          (this._app.screen.width - this.spinCounterText.width) / 2
+        );
+      },
+      [GameEventType.SPIN_END]: () => {
         this.playButton.interactive = true;
         this.playButton.alpha = 1.0;
-      }
+      },
+      [GameEventType.WIN]: () => {
+        this.winCount += 1;
+        this.winCounterText.text = `Wins: ${this.winCount}`;
+        this.winCounterText.x = Math.round(
+          (this._app.screen.width - this.winCounterText.width) / 2
+        );
+      },
+    };
+
+    this._eventBus.on((event) => {
+      eventHandler[event.type]?.(event);
     });
   }
 }
