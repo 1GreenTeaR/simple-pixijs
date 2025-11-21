@@ -93,7 +93,6 @@ export class SlotMachine extends PIXI.Container {
     this._app.ticker.add(updateReels);
     this._app.ticker.add(updateTweens);
   }
-  
 
   public spin(): void {
     if (this._running) return;
@@ -136,6 +135,73 @@ export class SlotMachine extends PIXI.Container {
     this._eventBus.emit({ type: GameEventType.SPIN_END });
 
     this.checkWin();
+
+    const animateWinningSymbol = (
+      symbol: SlotSymbol,
+      spinDuration: number = 700,
+      turns: number = 2,
+      scalePulse: number = 0.4
+    ) => {
+      symbol.scale.set(1, 1);
+      symbol.rotation = 0;
+      const ticker = PIXI.Ticker.shared;
+      const start = performance.now();
+      // in case some transform is already applied, will mess up and restore wrong size in case another animation is ongoing
+      const originalScale = symbol.scale.x;
+
+      let animationComplete = false;
+      let animationTick = () => {
+        const elapsed = ticker.lastTime - start;
+        let t = elapsed / spinDuration;
+        if (t > 1) t = 1;
+
+        // cubic ease out
+        const calcEase = (t: number): number => {
+          if (t < 0.5) {
+            return 4 * Math.pow(t, 3);
+          } else {
+            return 1 - Math.pow(-2 * t + 2, 3) / 2;
+          }
+        };
+
+        const setSymbolTransform = (symbol: SlotSymbol, ease: number) => {
+          symbol.rotation = ease * Math.PI * 2 * turns;
+          symbol.scale.set(
+            originalScale + scalePulse * Math.sin(ease * Math.PI)
+          );
+        };
+
+        const ease = calcEase(t);
+        setSymbolTransform(symbol, ease);
+
+        if (t >= 1) {
+          symbol.scale.set(originalScale);
+          symbol.rotation = 0;
+          animationComplete = true;
+        }
+      };
+
+      const update = () => {
+        if (!animationComplete) {
+          animationTick();
+        } else {
+          ticker.remove(update);
+        }
+      };
+
+      ticker.add(update);
+    };
+
+    for (let row = 0; row < VISIBLE_SYMBOLS; row++) {
+      const rowSymbols = this.getSymbolsByRow(row);
+      const isWinningRow =
+        rowSymbols.length === this._reels.length &&
+        rowSymbols.every((s, _, arr) => s.name === arr[0].name);
+
+      if (isWinningRow) {
+        rowSymbols.forEach((symbol) => animateWinningSymbol(symbol));
+      }
+    }
   };
 
   // Initialization
